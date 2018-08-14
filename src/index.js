@@ -255,6 +255,18 @@ export default ({
         filenameMap[filename] = {
           styleModuleImportMap: {}
         };
+
+        if(stats.opts.defaultCssFile) {
+          filenameMap[filename] = {
+            styleModuleImportMap: {
+              "default": requireCssModule(resolve(stats.opts.defaultCssFile), {
+                context: stats.opts.context,
+                filetypes: stats.opts.filetypes || {},
+                generateScopedName: stats.opts.generateScopedName
+              })
+            }
+          }
+        }
       }
     }
   };
