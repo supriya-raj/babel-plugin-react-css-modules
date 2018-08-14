@@ -214,6 +214,7 @@ export default ({
             if (t.isCallExpression(attribute.value.expression) || t.isIdentifier(attribute.value.expression)) {
               resolveJsxExpression(
                 path,
+                stats,
                 filenameMap[filename].styleModuleImportMap,
                 attribute,
                 destinationName,
