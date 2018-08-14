@@ -1,13 +1,13 @@
 // @flow
 
 import {
-  isJSXExpressionContainer,
   isStringLiteral,
+  isIdentifier,
   isObjectExpression,
-  JSXAttribute,
-  stringLiteral
+  isCallExpression,
+  isVariableDeclarator,
+  JSXAttribute
 } from 'babel-types';
-import conditionalClassMerge from './conditionalClassMerge';
 import getClassName from './getClassName';
 import type {
   StyleModuleImportMapType,
@@ -27,28 +27,39 @@ export default (
   sourceAttribute: JSXAttribute,
   destinationName: string,
   options: OptionsType): void => {
-  const callExpressionArguments = sourceAttribute.value.expression.arguments;
-
-  for (let argumentIndex in callExpressionArguments) {
-      let argument = callExpressionArguments[argumentIndex];
-      if(isStringLiteral(argument)) {
-        callExpressionArguments[argumentIndex].value = getClassName(argument.value, styleModuleImportMap, options);
-      } else if(isObjectExpression(argument)) {
-        for (let propertyIndex in argument.properties){
-            let property = argument.properties[propertyIndex];
-            if(isStringLiteral(property.key)) {
-                property.key.value = getClassName(property.key.value, styleModuleImportMap, options);
-            }
+  const jsxExpression = sourceAttribute.value.expression;
+  const replaceCallArguments = function (callExpressionArguments) {
+    for (const argument of callExpressionArguments) {
+      if (isStringLiteral(argument)) {
+        argument.value = getClassName(argument.value, styleModuleImportMap, options);
+      } else if (isObjectExpression(argument)) {
+        for (const property of argument.properties) {
+          if (isStringLiteral(property.key)) {
+            property.key.value = getClassName(property.key.value, styleModuleImportMap, options);
+          }
         }
       }
+    }
+  };
+
+  if (isCallExpression(jsxExpression)) {
+    replaceCallArguments(sourceAttribute.value.expression.arguments);
+  } else if (isIdentifier(jsxExpression)) {
+    const variableDeclaration = path.scope.getBinding(jsxExpression.name).path.node;
+
+    if (isVariableDeclarator(variableDeclaration)) {
+      if (isCallExpression(variableDeclaration.init)) {
+        replaceCallArguments(variableDeclaration.init.arguments);
+      }
+    }
   }
-  
 
   const destinationAttribute = path.node.openingElement.attributes
     .find((attribute) => {
       return typeof attribute.name !== 'undefined' && attribute.name.name === destinationName;
     });
 
+  // the desination attribute cannot be already present on the Jsx
   if (destinationAttribute) {
     throw new Error('Destination Attribute cannot be present on JSX Element when using JSX Expressions');
   } else {

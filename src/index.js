@@ -13,7 +13,7 @@ import optionsDefaults from './schemas/optionsDefaults';
 import createObjectExpression from './createObjectExpression';
 import requireCssModule from './requireCssModule';
 import resolveStringLiteral from './resolveStringLiteral';
-import resolveJSXExpression from './resolveJSXExpression';
+import resolveJsxExpression from './resolveJsxExpression';
 import replaceJsxExpressionContainer from './replaceJsxExpressionContainer';
 
 const ajv = new Ajv({
@@ -211,8 +211,8 @@ export default ({
               }
             );
           } else if (t.isJSXExpressionContainer(attribute.value)) {
-            if(t.isCallExpression(attribute.value.expression)) {
-              resolveJSXExpression(
+            if (t.isCallExpression(attribute.value.expression) || t.isIdentifier(attribute.value.expression)) {
+              resolveJsxExpression(
                 path,
                 filenameMap[filename].styleModuleImportMap,
                 attribute,
@@ -221,6 +221,7 @@ export default ({
                   handleMissingStyleName
                 }
               );
+
               return;
             }
             if (!filenameMap[filename].importedHelperIndentifier) {
