@@ -52,7 +52,7 @@
       "type": "boolean"
     },
     "handleMissingStyleName": {
-      "enum": ["throw", "warn", "ignore"]
+      "enum": ["throw", "warn", "ignore", "retain"]
     },
     "attributeNames": {
       "additionalProperties": false,
