@@ -46,7 +46,7 @@
   ],
   "license": "BSD-3-Clause",
   "main": "dist/index.js",
-  "name": "babel-plugin-react-css-modules",
+  "name": "react-css-modules-with-dynamic-classes",
   "repository": {
     "type": "git",
     "url": "https://github.com/supriya-raj/babel-plugin-react-css-modules"
