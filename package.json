@@ -56,8 +56,7 @@
     "build-helper": "mkdir -p ./dist/browser && NODE_ENV=production babel ./src/getClassName.js --out-file ./dist/browser/getClassName.js --source-maps --no-babelrc --plugins transform-es2015-modules-commonjs,transform-flow-strip-types --presets es2015",
     "lint": "eslint ./src && flow",
     "precommit": "npm run test && npm run lint",
-    "test": " NODE_ENV=test mocha --require babel-core/register",
-    "prepare": "npm install;npm run build"
+    "test": " NODE_ENV=test mocha --require babel-core/register"
   },
   "version": "1.0.0"
 }
