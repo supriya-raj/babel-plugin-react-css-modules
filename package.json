@@ -57,7 +57,7 @@
     "lint": "eslint ./src && flow",
     "precommit": "npm run test && npm run lint",
     "test": " NODE_ENV=test mocha --require babel-core/register",
-    "prepack": "npm run build"
+    "prepublishOnly": "npm run build"
   },
-  "version": "1.0.1"
+  "version": "1.0.2"
 }
