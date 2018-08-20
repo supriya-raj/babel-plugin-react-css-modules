@@ -10,11 +10,9 @@ import ajvKeywords from 'ajv-keywords';
 import Ajv from 'ajv';
 import optionsSchema from './schemas/optionsSchema.json';
 import optionsDefaults from './schemas/optionsDefaults';
-import createObjectExpression from './createObjectExpression';
 import requireCssModule from './requireCssModule';
 import resolveStringLiteral from './resolveStringLiteral';
-import resolveJsxExpression from './resolveJsxExpression';
-import replaceJsxExpressionContainer from './replaceJsxExpressionContainer';
+import resolveClassnameCallExpression from './resolveClassnameCallExpression';
 
 const ajv = new Ajv({
   // eslint-disable-next-line id-match
@@ -32,44 +30,44 @@ export default ({
 }) => {
   const filenameMap = {};
 
-  const setupFileForRuntimeResolution = (path, filename) => {
-    const programPath = path.findParent((parentPath) => {
-      return parentPath.isProgram();
-    });
+  // const setupFileForRuntimeResolution = (path, filename) => {
+  //   const programPath = path.findParent((parentPath) => {
+  //     return parentPath.isProgram();
+  //   });
 
-    filenameMap[filename].importedHelperIndentifier = programPath.scope.generateUidIdentifier('getClassName');
-    filenameMap[filename].styleModuleImportMapIdentifier = programPath.scope.generateUidIdentifier('styleModuleImportMap');
+  //   filenameMap[filename].importedHelperIndentifier = programPath.scope.generateUidIdentifier('getClassName');
+  //   filenameMap[filename].styleModuleImportMapIdentifier = programPath.scope.generateUidIdentifier('styleModuleImportMap');
 
-    programPath.unshiftContainer(
-      'body',
-      t.importDeclaration(
-        [
-          t.importDefaultSpecifier(
-            filenameMap[filename].importedHelperIndentifier
-          )
-        ],
-        t.stringLiteral('babel-plugin-react-css-modules/dist/browser/getClassName')
-      )
-    );
+  //   programPath.unshiftContainer(
+  //     'body',
+  //     t.importDeclaration(
+  //       [
+  //         t.importDefaultSpecifier(
+  //           filenameMap[filename].importedHelperIndentifier
+  //         )
+  //       ],
+  //       t.stringLiteral('babel-plugin-react-css-modules/dist/browser/getClassName')
+  //     )
+  //   );
 
-    const firstNonImportDeclarationNode = programPath.get('body').find((node) => {
-      return !t.isImportDeclaration(node);
-    });
+  //   const firstNonImportDeclarationNode = programPath.get('body').find((node) => {
+  //     return !t.isImportDeclaration(node);
+  //   });
 
-    firstNonImportDeclarationNode.insertBefore(
-      t.variableDeclaration(
-        'const',
-        [
-          t.variableDeclarator(
-            filenameMap[filename].styleModuleImportMapIdentifier,
-            createObjectExpression(t, filenameMap[filename].styleModuleImportMap)
-          )
-        ]
-      )
-    );
-    // eslint-disable-next-line no-console
-    // console.log('setting up', filename, util.inspect(filenameMap,{depth: 5}))
-  };
+  //   firstNonImportDeclarationNode.insertBefore(
+  //     t.variableDeclaration(
+  //       'const',
+  //       [
+  //         t.variableDeclarator(
+  //           filenameMap[filename].styleModuleImportMapIdentifier,
+  //           createObjectExpression(t, filenameMap[filename].styleModuleImportMap)
+  //         )
+  //       ]
+  //     )
+  //   );
+  //   // eslint-disable-next-line no-console
+  //   // console.log('setting up', filename, util.inspect(filenameMap,{depth: 5}))
+  // };
 
   const addWebpackHotModuleAccept = (path) => {
     const test = t.memberExpression(t.identifier('module'), t.identifier('hot'));
@@ -141,6 +139,22 @@ export default ({
   return {
     inherits: babelPluginJsxSyntax,
     visitor: {
+      CallExpression (path: *, stats: *): void {
+        const filename = stats.file.opts.filename;
+
+        const handleMissingStyleName = stats.opts && stats.opts.handleMissingStyleName || optionsDefaults.handleMissingStyleName;
+
+        if (t.isIdentifier(path.node.callee, {name: 'classnames'}) && !t.isJSXExpressionContainer(path.parentPath.node)) {
+          resolveClassnameCallExpression(
+            path,
+            stats,
+            filenameMap[filename].styleModuleImportMap,
+            {
+              handleMissingStyleName
+            }
+          );
+        }
+      },
       ImportDeclaration (path: *, stats: *): void {
         if (notForPlugin(path, stats)) {
           return;
@@ -210,35 +224,6 @@ export default ({
                 handleMissingStyleName
               }
             );
-          } else if (t.isJSXExpressionContainer(attribute.value)) {
-            if (t.isCallExpression(attribute.value.expression) || t.isIdentifier(attribute.value.expression)) {
-              resolveJsxExpression(
-                path,
-                stats,
-                filenameMap[filename].styleModuleImportMap,
-                attribute,
-                destinationName,
-                {
-                  handleMissingStyleName
-                }
-              );
-
-              return;
-            }
-            if (!filenameMap[filename].importedHelperIndentifier) {
-              setupFileForRuntimeResolution(path, filename);
-            }
-            replaceJsxExpressionContainer(
-              t,
-              path,
-              attribute,
-              destinationName,
-              filenameMap[filename].importedHelperIndentifier,
-              filenameMap[filename].styleModuleImportMapIdentifier,
-              {
-                handleMissingStyleName
-              }
-            );
           }
         }
       },
@@ -256,16 +241,16 @@ export default ({
           styleModuleImportMap: {}
         };
 
-        if(stats.opts.defaultCssFile) {
+        if (stats.opts.defaultCssFile) {
           filenameMap[filename] = {
             styleModuleImportMap: {
-              "default": requireCssModule(resolve(stats.opts.defaultCssFile), {
+              default: requireCssModule(resolve(stats.opts.defaultCssFile), {
                 context: stats.opts.context,
                 filetypes: stats.opts.filetypes || {},
                 generateScopedName: stats.opts.generateScopedName
               })
             }
-          }
+          };
         }
       }
     }
